@@ -1,1 +1,1 @@
-Dive in Debug folders to see generated parsers and lexers.
+Dive in Debug folder to see generated parsers and lexers.
