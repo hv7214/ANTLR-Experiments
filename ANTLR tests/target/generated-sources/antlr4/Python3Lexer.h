@@ -56,12 +56,12 @@ public:
       public:
           void emit(unique_ptr<Token> token)
           {
-//        	  Tokens.push_back(move(token));
               setToken(move(token));
+              Tokens.push_back(move(token));
           }
 
       private:
-          CommonToken* commonToken(int type, string text)
+          CommonToken* commonToken(size_t type, string text)
           {
               int stop = this->getCharIndex() - 1;
               int start = text.length() == 0 ? stop : stop - text.length() + 1;
@@ -75,8 +75,7 @@ public:
               dedent->setLine(LastToken->getLine());
               Token* obj = dedent;
               unique_ptr<Token> ptr(obj);
-              auto x = move(ptr);
-              return x;
+              return ptr;
           }
 
           unique_ptr<Token> nextToken()
@@ -94,14 +93,14 @@ public:
                   unique_ptr<Token> uptr(obj);
                   // First emit an extra line break that serves as the end of the statement.
                   emit(move(uptr));
-                  
+
                   // Now emit as much DEDENT tokens as needed.
                   while (Indents.size() != 0)
                   {
                       emit(createDedent());
                       Indents.pop();
                   }
-                  
+
                   // Put the EOF back on the token stream.
                   obj = commonToken(EOF, "<EOF>");
                   unique_ptr<Token> uptr2(obj);

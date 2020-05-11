@@ -44,111 +44,111 @@ tokens { INDENT, DEDENT }
 
 @lexer::members {
     private:
-        // A queue where extra tokens are pushed on (see the NEWLINE lexer rule).
-        list<unique_ptr<Token>> Tokens;
-        // The stack that keeps track of the indentation level.
-        stack<int> Indents;
-        // The amount of opened braces, brackets and parenthesis.
-        int Opened = 0;
-        // The most recently produced token.
-        unique_ptr<Token> LastToken;
+          // A queue where extra tokens are pushed on (see the NEWLINE lexer rule).
+          list<unique_ptr<Token>> Tokens;
+          // The stack that keeps track of the indentation level.
+          stack<int> Indents;
+          // The amount of opened braces, brackets and parenthesis.
+          int Opened = 0;
+          // The most recently produced token.
+          unique_ptr<Token> LastToken;
 
-    public:
-        void emit(unique_ptr<Token> token)
-        {     
-            setToken(move(token));
-            Tokens.push_back(token);
-        }
+      public:
+          void emit(unique_ptr<Token> token)
+          {     
+              setToken(move(token));
+              Tokens.push_back(move(token));
+          }
 
-    private:
-        CommonToken* commonToken(int type, string text)
-        {
-            int stop = this->getCharIndex() - 1;
-            int start = text.length() == 0 ? stop : stop - text.length() + 1;
-            return new CommonToken(this->_tokenFactorySourcePair, type, DEFAULT_TOKEN_CHANNEL, start, stop);
-        }
+      private:
+          CommonToken* commonToken(size_t type, string text)
+          {
+              int stop = this->getCharIndex() - 1;
+              int start = text.length() == 0 ? stop : stop - text.length() + 1;
+              return new CommonToken(this->_tokenFactorySourcePair, type, DEFAULT_TOKEN_CHANNEL, start, stop);
+          }
 
-    public:
-        unique_ptr<Token> createDedent()
-        {
-            CommonToken* dedent = new CommonToken(DEDENT, "");
-            dedent->setLine(LastToken->getLine());
-            Token* obj = dedent;
-            unique_ptr<Token> ptr(obj);
-            return move(ptr);
-        }
+      public:
+          unique_ptr<Token> createDedent()
+          {
+              CommonToken* dedent = new CommonToken(DEDENT, "");
+              dedent->setLine(LastToken->getLine());
+              Token* obj = dedent;
+              unique_ptr<Token> ptr(obj);
+              return ptr;
+          }
 
-        unique_ptr<Token> nextToken()
-        {
-            // Check if the end-of-file is ahead and there are still some DEDENTS expected.
-            if (_input->LA(1) == EOF && this->Indents.size() != 0)
-            {
-                // Remove any trailing EOF tokens from our buffer.
-                for(auto ptr = Tokens.begin(); ptr != Tokens.end(); ptr++) {
-                    if((*ptr)->getType() == EOF) {
-                        Tokens.erase(ptr);
-                    }
-                }
-                Token* obj = commonToken(NEWLINE, "\n");
-                unique_ptr<Token> uptr(obj);
-                // First emit an extra line break that serves as the end of the statement.
-                emit(move(uptr));
-                
-                // Now emit as much DEDENT tokens as needed.
-                while (Indents.size() != 0)
-                {
-                    emit(createDedent());
-                    Indents.pop();
-                }
-                
-                // Put the EOF back on the token stream.
-                obj = commonToken(EOF, "<EOF>");
-                unique_ptr<Token> uptr2(obj);
-                emit(move(uptr2));
-            }
+          unique_ptr<Token> nextToken()
+          {
+              // Check if the end-of-file is ahead and there are still some DEDENTS expected.
+              if (_input->LA(1) == EOF && this->Indents.size() != 0)
+              {
+                  // Remove any trailing EOF tokens from our buffer.
+                  for(auto ptr = Tokens.begin(); ptr != Tokens.end(); ptr++) {
+                      if((*ptr)->getType() == EOF) {
+                          Tokens.erase(ptr);
+                      }
+                  }
+                  Token* obj = commonToken(NEWLINE, "\n");
+                  unique_ptr<Token> uptr(obj);
+                  // First emit an extra line break that serves as the end of the statement.
+                  emit(move(uptr));
+                  
+                  // Now emit as much DEDENT tokens as needed.
+                  while (Indents.size() != 0)
+                  {
+                      emit(createDedent());
+                      Indents.pop();
+                  }
+                  
+                  // Put the EOF back on the token stream.
+                  obj = commonToken(EOF, "<EOF>");
+                  unique_ptr<Token> uptr2(obj);
+                  emit(move(uptr2));
+              }
 
-            auto next = nextToken();
-            if (next->getChannel() == DEFAULT_TOKEN_CHANNEL)
-            {
-                // Keep track of the last token on the default channel.
-                LastToken = move(next);
-            }
+              auto next = nextToken();
+              if (next->getChannel() == DEFAULT_TOKEN_CHANNEL)
+              {
+                  // Keep track of the last token on the default channel.
+                  LastToken = move(next);
+              }
 
-            if (Tokens.size() == 0)
-            {
-                return next;
-            }
-            else
-            {
-                auto x = move(Tokens.back()); Tokens.pop_back();
-                return x;
-            }
-        }
+              if (Tokens.size() == 0)
+              {
+                  return next;
+              }
+              else
+              {
+                  auto x = move(Tokens.back()); Tokens.pop_back();
+                  return x;
+              }
+          }
 
-        // Calculates the indentation of the provided spaces, taking the
-        // following rules into account:
-        //
-        // "Tabs are replaced (from left to right) by one to eight spaces
-        //  such that the total number of characters up to and including
-        //  the replacement is a multiple of eight [...]"
-        //
-        //  -- https://docs.python.org/3.1/reference/lexical_analysis.html#indentation
-        static int getIndentationCount(string spaces)
-        {
-            int count = 0;
-            char charArray[spaces.length()];
-            strcpy(charArray, spaces.c_str());
-            for(char ch : charArray)
-            {
-                count += ch == '\t' ? 8 - (count % 8) : 1;
-            }
-            return count;
-        }
+          // Calculates the indentation of the provided spaces, taking the
+          // following rules into account:
+          //
+          // "Tabs are replaced (from left to right) by one to eight spaces
+          //  such that the total number of characters up to and including
+          //  the replacement is a multiple of eight [...]"
+          //
+          //  -- https://docs.python.org/3.1/reference/lexical_analysis.html#indentation
+          static int getIndentationCount(string spaces)
+          {
+              int count = 0;
+              char charArray[spaces.length()];
+              strcpy(charArray, spaces.c_str());
+              for(char ch : charArray)
+              {
+                  count += ch == '\t' ? 8 - (count % 8) : 1;
+              }
+              return count;
+          }
 
-        bool atStartOfInput()
-        {
-            return getCharPositionInLine() == 0 && getLine() == 1;
-        }
+          bool atStartOfInput()
+          {
+              return getCharPositionInLine() == 0 && getLine() == 1;
+          }
 }
 
 /*
