@@ -71,7 +71,7 @@ tokens { INDENT, DEDENT }
       public:
           unique_ptr<Token> createDedent()
           {
-              CommonToken* dedent = new CommonToken(DEDENT, "");
+              CommonToken* dedent = new CommonToken(Python3Parser::DEDENT, "");
               dedent->setLine(LastToken->getLine());
               Token* obj = dedent;
               unique_ptr<Token> ptr(obj);
@@ -387,7 +387,7 @@ NEWLINE
     			}
     			else if (indent > previous) {
     				Indents.push(indent);
-            Token* obj = commonToken(INDENT, spaces);
+            Token* obj = commonToken(Python3Parser::INDENT, spaces);
             unique_ptr<Token> uptr(obj);
     				emit(move(uptr));
     			}
